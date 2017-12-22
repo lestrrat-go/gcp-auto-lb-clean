@@ -164,6 +164,7 @@ func checkAndDeleteTargetProxiesIfApplicable(ctx context.Context, app *App, fwna
 	var urlMapURL string
 	var certificates []string
 	var tpName string
+	var timestamp string
 	if isHTTPs {
 		tp, err := app.GetTargetHttpsProxy(tpname)
 		if err != nil {
@@ -172,6 +173,7 @@ func checkAndDeleteTargetProxiesIfApplicable(ctx context.Context, app *App, fwna
 		tpName = tp.Name
 		certificates = tp.SslCertificates
 		urlMapURL = tp.UrlMap
+		timestamp = tp.CreationTimestamp
 	} else {
 		tp, err := app.GetTargetHttpProxy(tpname)
 		if err != nil {
@@ -179,7 +181,15 @@ func checkAndDeleteTargetProxiesIfApplicable(ctx context.Context, app *App, fwna
 		}
 		tpName = tp.Name
 		urlMapURL = tp.UrlMap
+		timestamp = tp.CreationTimestamp
 	}
+
+	if t, _ := time.Parse(time.RFC3339, timestamp); t.After(time.Now().Add(-1*time.Hour)) {
+		// if it's pretty new, that's OK. it may still be initializing,
+		// for all I care
+		return nil
+	}
+
 
 	umname, _, err := ParseUrlMap(urlMapURL)
 	if err != nil {

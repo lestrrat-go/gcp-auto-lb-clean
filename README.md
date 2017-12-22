@@ -50,7 +50,11 @@ to properly initialize and there are no corresponding forwarding rules. In order
 catch these, we look for target http(s) proxies that have not yet been found during
 the search in the above operation, and check those as well.
 
-Both of these combined will cover
+Both of these combined will cover most cases.
+
+Lastly, the target proxy for the corresponding load balancers must be
+at least 1 hour old in order to be deleted. This is to prevent accidental
+deletes while the proxies are being initialized.
 
 # DELETING SERVICE LOAD BALANCERS
 
