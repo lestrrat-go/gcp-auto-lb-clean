@@ -2,6 +2,11 @@
 
 GAE appliation to automatically clean up after dangling GCP load balancers
 
+# CAVEAT EMPTOR
+
+BEWARE! DELETES GCP RESOURCES!
+USE AT YOUR OWN PERIL!
+
 # DESCRIPTION
 
 As of this writing (Dec 2017), the following steps almost always leave
