@@ -1,0 +1,8 @@
+runtime: go
+api_version: go1
+service: auto-lb-clean
+
+handlers:
+  - url: /.*
+    script: _go_app
+    login: admin

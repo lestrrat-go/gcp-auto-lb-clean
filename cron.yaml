@@ -1,0 +1,5 @@
+cron:
+  - description: delete dangling LBs
+    url: /job/forwarding-rules/start
+    schedule: every 10 mins
+    target: auto-lb-clean
