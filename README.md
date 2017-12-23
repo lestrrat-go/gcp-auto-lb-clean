@@ -9,6 +9,8 @@ USE AT YOUR OWN PERIL!
 
 # DESCRIPTION
 
+For a longer discussion, [please read my post](https://medium.com/p/farewell-to-dangling-http-s-load-balancers-gke-c5e0f8b5cde3)
+
 As of this writing (Dec 2017), the following steps almost always leave
 dangling HTTP(s) LBs (dangling meaning the backend instances/instance groups are
 long gone, but resources such as the forwarding rules and target proxies are still
