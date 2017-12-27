@@ -58,6 +58,14 @@ Lastly, the target proxy for the corresponding load balancers must be
 at least 1 hour old in order to be deleted. This is to prevent accidental
 deletes while the proxies are being initialized.
 
+# DELETING FIREWALL RULES
+
+Ingress creates firewall rules to allow healthchecks to go through to your nodes.
+And... these can be left dangling as well.
+
+Each firewall rule contains a target tag, and if it matches a non-existent
+"gke-*" tag, thes will be deleted, too
+
 # DELETING SERVICE LOAD BALANCERS
 
 (UNIMPLEMENTED)
