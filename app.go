@@ -48,7 +48,11 @@ func init() {
 	}
 
 	// list all forwarding rules, and start "check" jobs
-	http.HandleFunc(`/job/forwarding-rules/start`, httpForwardingRulesStart)
+	http.HandleFunc(`/job/forwarding-rules/check`, httpForwardingRulesCheck)
+
+	// checks for dangling firewall rules
+	http.HandleFunc(`/job/firewall-rules/check`, httpFirewallsCheck)
+
 	http.HandleFunc(`/job/forwarding-rules/delete`, httpForwardingRulesDelete)
 	http.HandleFunc(`/job/url-maps/delete`, httpUrlMapsDelete)
 	http.HandleFunc(`/job/ssl-certificates/delete`, httpBackendServicesDelete)
@@ -74,7 +78,7 @@ func handleJobError(w http.ResponseWriter, r *http.Request, e error) {
 	http.Error(w, `abort job`, http.StatusNoContent)
 }
 
-func httpForwardingRulesStart(w http.ResponseWriter, r *http.Request) {
+func httpForwardingRulesCheck(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	app, err := AppengineApp(ctx)
 	if err != nil {
@@ -184,12 +188,11 @@ func checkAndDeleteTargetProxiesIfApplicable(ctx context.Context, app *App, fwna
 		timestamp = tp.CreationTimestamp
 	}
 
-	if t, _ := time.Parse(time.RFC3339, timestamp); t.After(time.Now().Add(-1*time.Hour)) {
+	if t, _ := time.Parse(time.RFC3339, timestamp); t.After(time.Now().Add(-1 * time.Hour)) {
 		// if it's pretty new, that's OK. it may still be initializing,
 		// for all I care
 		return nil
 	}
-
 
 	umname, _, err := ParseUrlMap(urlMapURL)
 	if err != nil {
@@ -478,5 +481,33 @@ func httpTargetProxiesDelete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func httpFirewallsCheck(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+	app, err := AppengineApp(ctx)
+	if err != nil {
+		http.Error(w, `failed to get app`, http.StatusOK)
+		return
+	}
+
+	firewalls, err := app.ListDanglingFirewalls(ctx)
+	if err != nil {
+		log.Debugf(ctx, `Failed to list dangling firewall rules %s`, err)
+		handleJobError(w, r, err)
+		return
+	}
+
+	for _, fw := range firewalls {
+		log.Debugf(ctx, `Deleting firewall %s`, fw.Name)
+
+		if _, err := app.service.Firewalls.Delete(app.project, fw.Name).Do(); err != nil {
+			log.Debugf(ctx, `Failed to delete dangling firewall rule %s: %s`, fw.Name, err)
+			handleJobError(w, r, err)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }

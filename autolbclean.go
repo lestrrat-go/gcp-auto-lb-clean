@@ -1,6 +1,7 @@
 package autolbclean
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -225,4 +226,61 @@ func ParseBackendServices(s string) (name string, region string, err error) {
 
 func ParseHealthChecks(s string) (name string, region string, err error) {
 	return parseURL(s, `healthChecks`)
+}
+
+func (app *App) ListDanglingFirewalls(ctx context.Context) ([]*compute.Firewall, error) {
+	firewalls, err := app.service.Firewalls.List(app.project).Do()
+	if err != nil {
+		return nil, errors.Wrap(err, `failed to list firewall rules`)
+	}
+
+	tags2fws := make(map[string][]*compute.Firewall)
+	for _, fw := range firewalls.Items {
+		// We only care about gke-* tags
+		for _, tag := range fw.TargetTags {
+			if !strings.HasPrefix(tag, `gke-`) {
+				continue
+			}
+
+			tags2fws[tag] = append(tags2fws[tag], fw)
+		}
+	}
+
+	// Now we have the list of firewalls that are referenced by a particular tag
+	// next, find the list of gke nodes and their tags
+	// we need to know the zones
+	zones, err := app.service.Zones.List(app.project).Do()
+	if err != nil {
+		return nil, errors.Wrap(err, `faild to list zones`)
+	}
+
+	for _, zone := range zones.Items {
+		// if we don't have any more tags to check for, we're done
+		if len(tags2fws) == 0 {
+			break
+		}
+
+		instances, err := app.service.Instances.List(app.project, zone.Name).Do()
+		if err != nil {
+			return nil, errors.Wrap(err, `failed to list instances`)
+		}
+		for _, instance := range instances.Items {
+			for _, tag := range instance.Tags.Items {
+				if !strings.HasPrefix(tag, `gke-`) {
+					continue
+				}
+
+				delete(tags2fws, tag)
+			}
+		}
+	}
+
+	var ret []*compute.Firewall
+	for _, fws := range tags2fws {
+		for _, fw := range fws {
+			ret = append(ret, fw)
+		}
+	}
+
+	return ret, nil
 }

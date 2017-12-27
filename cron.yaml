@@ -1,5 +1,9 @@
 cron:
   - description: delete dangling LBs
-    url: /job/forwarding-rules/start
+    url: /job/forwarding-rules/check
+    schedule: every 10 mins
+    target: auto-lb-clean
+  - description: delete dangling firewall rules
+    url: /job/firewall-rules/check
     schedule: every 10 mins
     target: auto-lb-clean

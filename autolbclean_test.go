@@ -212,3 +212,32 @@ func TestIngress(t *testing.T) {
 		}
 	})
 }
+
+func TestListDanglingFirewalls(t *testing.T) {
+	// Note: this test doesn't test anything, but just displays your current
+	// list of danlging firewalls, if any
+	if !testReady() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cl, err := google.DefaultClient(ctx, compute.ComputeScope)
+	if !assert.NoError(t, err, `google.DefaultClient should succeed`) {
+		return
+	}
+
+	app, err := autolbclean.New(tProjectID, cl)
+	if !assert.NoError(t, err, `New should succeed`) {
+		return
+	}
+
+	fws, err := app.ListDanglingFirewalls(ctx)
+	if !assert.NoError(t, err, `ListDanglingFirewalls should succeed`) {
+		return
+	}
+	for _, fw := range fws {
+		dump(t, fw)
+	}
+}
